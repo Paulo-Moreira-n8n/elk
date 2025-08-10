@@ -1,1 +1,1 @@
-curl -fsSL https://elastic.co/start-local | sh
+CMD [curl -fsSL https://elastic.co/start-local | sh]
