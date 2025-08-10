@@ -1,0 +1,587 @@
+inputs:
+  # Collect logs from System instances: Collecting System auth and syslog logs from files
+  - id: system-logfile
+    type: logfile
+    streams:
+      # System auth logs (log): Collect System auth logs using log input
+      - id: logfile-system.auth
+        data_stream:
+          dataset: system.auth
+          type: logs
+        condition: >-
+          ${host.os_version} != "12 (bookworm)" and (${host.os_platform} !=
+          "amzn" or ${host.os_version} != "2023")
+        ignore_older: 72h
+        paths:
+          - /var/log/auth.log*
+          - /var/log/secure*
+        exclude_files:
+          - \.gz$
+        multiline:
+          pattern: ^\s
+          match: after
+        tags:
+          - preserve_original_event
+          - system-auth
+        processors:
+          - add_locale: null
+          - rename:
+              fields:
+                - from: message
+                  to: event.original
+              ignore_missing: true
+              fail_on_error: false
+          - syslog:
+              field: event.original
+              ignore_missing: true
+              ignore_failure: true
+      # System syslog logs (log): Collect System syslog logs using log input
+      - id: logfile-system.syslog
+        data_stream:
+          dataset: system.syslog
+          type: logs
+        condition: >-
+          ${host.os_version} != "12 (bookworm)" and (${host.os_platform} !=
+          "amzn" or ${host.os_version} != "2023")
+        paths:
+          - /var/log/messages*
+          - /var/log/syslog*
+          - /var/log/system*
+        exclude_files:
+          - \.gz$
+        multiline:
+          pattern: ^\s
+          match: after
+        processors:
+          - add_locale: null
+        tags:
+          - preserve_original_event
+          # - <TAGS> # Tags
+        ignore_older: 72h
+  # Collect logs from System instances using Journald: Collecting System auth and syslog logs using Journald
+  - id: system-journald
+    type: journald
+    streams:
+      # System auth logs (journald): Collect System auth logs using journald input
+      - id: journald-system.auth
+        type: journald
+        data_stream:
+          dataset: system.auth
+          type: logs
+        facilities:
+          - 4
+          - 10
+        condition: >-
+          ${host.os_version} == "12 (bookworm)" or (${host.os_platform} ==
+          "amzn" and ${host.os_version} == "2023")
+        tags:
+          - preserve_original_event
+          # - <TAGS>
+          #  # Tags: Tags to include in the published event.
+        # paths:
+        #  - <PATHS>
+        #    # Journal paths: List of journals to read from. Defaults to the system journal.
+        # include_matches:
+        #  - <INCLUDE_MATCHES>
+        #    # Include Matches: A list of filter expressions used to select the logs to read (e.g. `_SYSTEMD_UNIT=vault.service`). Defaults to all logs. See [include_matches](https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-input-journald.html#filebeat-input-journald-include-matches) for details. The logs are already filtered by the following syslog facilities: 4, 10, so any filter added here will be added to this existing filter.
+      # System syslog logs (journald): Collect System syslog logs using journald input
+      - id: journald-system.syslog
+        type: journald
+        data_stream:
+          dataset: system.syslog
+          type: logs
+        facilities:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 11
+          - 12
+          - 15
+        condition: >-
+          ${host.os_version} == "12 (bookworm)" or (${host.os_platform} ==
+          "amzn" and ${host.os_version} == "2023")
+        tags:
+          - preserve_original_event
+          # - <TAGS>
+          #  # Tags: Tags to include in the published event.
+        # paths:
+        #  - <PATHS>
+        #    # Journal paths: List of journals to read from. Defaults to the system journal.
+        # include_matches:
+        #  - <INCLUDE_MATCHES>
+        #    # Include Matches: A list of filter expressions used to select the logs to read (e.g. `_SYSTEMD_UNIT=vault.service`). Defaults to all logs. See [include_matches](https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-input-journald.html#filebeat-input-journald-include-matches) for details. The logs are already filtered by the following syslog facilities: 0, 1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 15, so any filter added here will be added to this existing filter.
+  # Collect events from the Windows event log: Collecting events from Windows event log
+  - id: system-winlog
+    type: winlog
+    streams:
+      # Application: Collect Windows application logs
+      - id: winlog-system.application
+        name: Application
+        data_stream:
+          dataset: system.application
+          type: logs
+        condition: '${host.platform} == ''windows'''
+        ignore_older: 72h
+        include_xml: true
+        tags:
+          - preserve_original_event
+          # - <TAGS> # Tags
+        # event_id: <EVENT_ID> # Event ID: A list of included and excluded (blocked) event IDs. The value is a comma-separated list. The accepted values are single event IDs to include (e.g. 4624), a range of event IDs to include (e.g. 4700-4800), and single event IDs to exclude (e.g. -4735).  Limit 22 clauses, lower in some situations. See integration documentation for more details.
+        # language: <LANGUAGE> # Language ID: The language ID the events will be rendered in. The language will be forced regardless of the system language. A complete list of language IDs can be found https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/a9eac961-e77d-41a6-90a5-ce1a8b0cdb9c[here]. It defaults to `0`, which indicates to use the system language. E.g.: 0x0409 for en-US
+      # Security: Security channel
+      - id: winlog-system.security
+        name: Security
+        data_stream:
+          dataset: system.security
+          type: logs
+        condition: '${host.platform} == ''windows'''
+        ignore_older: 72h
+        tags:
+          - preserve_original_event
+          # - <TAGS> # Tags
+        include_xml: true
+        # event_id: <EVENT_ID> # Event ID: A list of included and excluded (blocked) event IDs. The value is a comma-separated list. The accepted values are single event IDs to include (e.g. 4624), a range of event IDs to include (e.g. 4700-4800), and single event IDs to exclude (e.g. -4735).  Limit 22 clauses, lower in some situations. See integration documentation for more details.
+        # language: <LANGUAGE> # Language ID: The language ID the events will be rendered in. The language will be forced regardless of the system language. A complete list of language IDs can be found https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/a9eac961-e77d-41a6-90a5-ce1a8b0cdb9c[here]. It defaults to `0`, which indicates to use the system language. E.g.: 0x0409 for en-US
+      # System: Collect Windows system logs
+      - id: winlog-system.system
+        name: System
+        data_stream:
+          dataset: system.system
+          type: logs
+        condition: '${host.platform} == ''windows'''
+        ignore_older: 72h
+        tags:
+          - preserve_original_event
+          # - <TAGS> # Tags
+        include_xml: true
+        # event_id: <EVENT_ID> # Event ID: A list of included and excluded (blocked) event IDs. The value is a comma-separated list. The accepted values are single event IDs to include (e.g. 4624), a range of event IDs to include (e.g. 4700-4800), and single event IDs to exclude (e.g. -4735).  Limit 22 clauses, lower in some situations. See integration documentation for more details.
+        # language: <LANGUAGE> # Language ID: The language ID the events will be rendered in. The language will be forced regardless of the system language. A complete list of language IDs can be found https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/a9eac961-e77d-41a6-90a5-ce1a8b0cdb9c[here]. It defaults to `0`, which indicates to use the system language. E.g.: 0x0409 for en-US
+  # Collect metrics from System instances: Collecting System core, CPU, diskio, entropy, filesystem, fsstat, load, memory, network, Network Summary, process, Process Summary, raid, service, socket, Socket Summary, uptime and users metrics
+  - id: system-system/metrics
+    type: system/metrics
+    streams:
+      # System core metrics: Collect System core metrics
+      - id: system/metrics-system.core
+        data_stream:
+          dataset: system.core
+          type: metrics
+        metricsets:
+          - core
+        core.metrics:
+          - percentages
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System cpu metrics: Collect System cpu metrics
+      - id: system/metrics-system.cpu
+        data_stream:
+          dataset: system.cpu
+          type: metrics
+        metricsets:
+          - cpu
+        cpu.metrics:
+          - percentages
+          - normalized_percentages
+        period: 10s
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System diskio metrics: Collect System diskio metrics
+      - id: system/metrics-system.diskio
+        data_stream:
+          dataset: system.diskio
+          type: metrics
+        metricsets:
+          - diskio
+        period: 10s
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # diskio.include_devices:
+        #  - <DISKIO.INCLUDE_DEVICES>
+        #    # Include Devices: Provide a specific list of devices to monitor. By default, all devices are monitored.
+        # tags:
+        #  - <TAGS> # Tags
+      # System filesystem metrics: Collect System filesystem metrics
+      - id: system/metrics-system.filesystem
+        data_stream:
+          dataset: system.filesystem
+          type: metrics
+        metricsets:
+          - filesystem
+        period: 1m
+        processors:
+          - drop_event.when.regexp:
+              system.filesystem.mount_point: ^/(sys|cgroup|proc|dev|etc|host|lib|snap)($|/)
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # filesystem.ignore_types:
+        #  - <FILESYSTEM.IGNORE_TYPES>
+        #    # List of filesystem types to ignore: The filesystem datastream will ignore any filesystems with a matching type as specified here. By default, this will exclude any filesystems marked as "nodev" in /proc/filesystems on linux.
+        # tags:
+        #  - <TAGS> # Tags
+      # System fsstat metrics: Collect System fsstat metrics
+      - id: system/metrics-system.fsstat
+        data_stream:
+          dataset: system.fsstat
+          type: metrics
+        metricsets:
+          - fsstat
+        period: 1m
+        processors:
+          - drop_event.when.regexp:
+              system.fsstat.mount_point: ^/(sys|cgroup|proc|dev|etc|host|lib|snap)($|/)
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System load metrics: Collect System load metrics
+      - id: system/metrics-system.load
+        data_stream:
+          dataset: system.load
+          type: metrics
+        metricsets:
+          - load
+        condition: '${host.platform} != ''windows'''
+        period: 10s
+        # tags:
+        #  - <TAGS> # Tags
+      # System memory metrics: Collect System memory metrics
+      - id: system/metrics-system.memory
+        data_stream:
+          dataset: system.memory
+          type: metrics
+        metricsets:
+          - memory
+        period: 10s
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System network metrics: Collect System network metrics
+      - id: system/metrics-system.network
+        data_stream:
+          dataset: system.network
+          type: metrics
+        metricsets:
+          - network
+        period: 10s
+        # network.interfaces:
+        #  - <NETWORK.INTERFACES>
+        #    # Interfaces: List of interfaces to monitor. Will monitor all by default.
+        # tags:
+        #  - <TAGS> # Tags
+      # System process metrics: Collect System process metrics
+      - id: system/metrics-system.process
+        data_stream:
+          dataset: system.process
+          type: metrics
+        metricsets:
+          - process
+        period: 10s
+        process.include_top_n.by_cpu: 5
+        process.include_top_n.by_memory: 5
+        process.cmdline.cache.enabled: true
+        processes:
+          - .*
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # process.cgroups.enabled: <PROCESS.CGROUPS.ENABLED>
+        #  # Enable cgroup reporting: Enable collection of cgroup metrics from processes on Linux.
+        # process.include_cpu_ticks: <PROCESS.INCLUDE_CPU_TICKS>
+        #  # Include CPU Ticks: Include the cumulative CPU tick values with the process metrics.
+        # process.env.whitelist:
+        #  - <PROCESS.ENV.WHITELIST>
+        #    # Env whitelist: A list of regular expressions used to whitelist environment variables reported with the process metricset's events. Defaults to empty.
+        # tags:
+        #  - <TAGS> # Tags
+      # System process_summary metrics: Collect System process_summary metrics
+      - id: system/metrics-system.process.summary
+        data_stream:
+          dataset: system.process.summary
+          type: metrics
+        metricsets:
+          - process_summary
+        period: 10s
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System socket_summary metrics: Collect System socket_summary metrics
+      - id: system/metrics-system.socket_summary
+        data_stream:
+          dataset: system.socket_summary
+          type: metrics
+        metricsets:
+          - socket_summary
+        period: 10s
+        # system.hostfs: <SYSTEM.HOSTFS> # Proc Filesystem Directory: The proc filesystem base directory.
+        # tags:
+        #  - <TAGS> # Tags
+      # System uptime metrics: Collect System uptime metrics
+      - id: system/metrics-system.uptime
+        data_stream:
+          dataset: system.uptime
+          type: metrics
+        metricsets:
+          - uptime
+        period: 10s
+        # tags:
+        #  - <TAGS> # Tags
+  # Collect logs from third-party REST API (deprecated): Collect logs from third-party REST API (deprecated)
+  - id: system-httpjson
+    type: httpjson
+    streams:
+      # Windows Application Events via Splunk Enterprise REST API: Collect Application Events via Splunk Enterprise REST API
+      - id: httpjson-system.application
+        data_stream:
+          dataset: system.application
+          type: logs
+        config_version: '2'
+        interval: 10s
+        request.tracer.filename: ../../logs/httpjson/http-request-trace-*.ndjson
+        request.tracer.maxbackups: 5
+        cursor:
+          index_earliest:
+            value: '[[.last_event.result.max_indextime]]'
+        request.url: 'https://server.example.com:8089/services/search/jobs/export'
+        request.ssl: null
+        request.method: POST
+        request.transforms:
+          - set:
+              target: url.params.search
+              value: >-
+                search sourcetype="XmlWinEventLog:Application" | streamstats
+                max(_indextime) AS max_indextime
+          - set:
+              target: url.params.output_mode
+              value: json
+          - set:
+              target: url.params.index_earliest
+              value: '[[ .cursor.index_earliest ]]'
+              default: '[[(now (parseDuration "-10s")).Unix]]'
+          - set:
+              target: url.params.index_latest
+              value: '[[(now).Unix]]'
+          - set:
+              target: header.Content-Type
+              value: application/x-www-form-urlencoded
+        response.decode_as: application/x-ndjson
+        tags:
+          - forwarded
+          - preserve_original_event
+        publisher_pipeline.disable_host: true
+        processors:
+          - decode_json_fields:
+              fields: message
+              target: json
+              add_error_key: true
+          - drop_event:
+              when:
+                not:
+                  has_fields:
+                    - json.result
+          - fingerprint:
+              fields:
+                - json.result._cd
+                - json.result._indextime
+                - json.result._raw
+                - json.result._time
+                - json.result.host
+                - json.result.source
+              target_field: '@metadata._id'
+          - drop_fields:
+              fields: message
+          - rename:
+              fields:
+                - from: json.result._raw
+                  to: event.original
+                - from: json.result.host
+                  to: host.name
+                - from: json.result.source
+                  to: event.provider
+              ignore_missing: true
+              fail_on_error: false
+          - drop_fields:
+              fields: json
+          - decode_xml_wineventlog:
+              field: event.original
+              target_field: winlog
+              ignore_missing: true
+              ignore_failure: true
+              map_ecs_fields: true
+          - timestamp:
+              field: winlog.time_created
+              layouts:
+                - '2006-01-02T15:04:05Z'
+                - '2006-01-02T15:04:05.999Z'
+                - '2006-01-02T15:04:05.999-07:00'
+              test:
+                - '2019-06-22T16:33:51Z'
+                - '2019-11-18T04:59:51.123Z'
+                - '2020-08-03T07:10:20.123456+02:00'
+      # Windows Security Events via Splunk Enterprise REST API: Collect Security Events via Splunk Enterprise REST API
+      - id: httpjson-system.security
+        data_stream:
+          dataset: system.security
+          type: logs
+        config_version: '2'
+        interval: 10s
+        request.tracer.filename: ../../logs/httpjson/http-request-trace-*.ndjson
+        request.tracer.maxbackups: 5
+        cursor:
+          index_earliest:
+            value: '[[.last_event.result.max_indextime]]'
+        request.url: 'https://server.example.com:8089/services/search/jobs/export'
+        request.ssl: null
+        request.method: POST
+        request.transforms:
+          - set:
+              target: url.params.search
+              value: >-
+                search sourcetype="XmlWinEventLog:Security" | streamstats
+                max(_indextime) AS max_indextime
+          - set:
+              target: url.params.output_mode
+              value: json
+          - set:
+              target: url.params.index_earliest
+              value: '[[ .cursor.index_earliest ]]'
+              default: '[[(now (parseDuration "-10s")).Unix]]'
+          - set:
+              target: url.params.index_latest
+              value: '[[(now).Unix]]'
+          - set:
+              target: header.Content-Type
+              value: application/x-www-form-urlencoded
+        response.decode_as: application/x-ndjson
+        tags:
+          - forwarded
+          - preserve_original_event
+        publisher_pipeline.disable_host: true
+        processors:
+          - decode_json_fields:
+              fields: message
+              target: json
+              add_error_key: true
+          - drop_event:
+              when:
+                not:
+                  has_fields:
+                    - json.result
+          - fingerprint:
+              fields:
+                - json.result._cd
+                - json.result._indextime
+                - json.result._raw
+                - json.result._time
+                - json.result.host
+                - json.result.source
+              target_field: '@metadata._id'
+          - drop_fields:
+              fields: message
+          - rename:
+              fields:
+                - from: json.result._raw
+                  to: event.original
+                - from: json.result.host
+                  to: host.name
+                - from: json.result.source
+                  to: event.provider
+              ignore_missing: true
+              fail_on_error: false
+          - drop_fields:
+              fields: json
+          - decode_xml_wineventlog:
+              field: event.original
+              target_field: winlog
+              ignore_missing: true
+              ignore_failure: true
+              map_ecs_fields: true
+      # Windows System Events via Splunk Enterprise REST API: Collect System Events via Splunk Enterprise REST API
+      - id: httpjson-system.system
+        data_stream:
+          dataset: system.system
+          type: logs
+        config_version: '2'
+        interval: 10s
+        request.tracer.filename: ../../logs/httpjson/http-request-trace-*.ndjson
+        request.tracer.maxbackups: 5
+        cursor:
+          index_earliest:
+            value: '[[.last_event.result.max_indextime]]'
+        request.url: 'https://server.example.com:8089/services/search/jobs/export'
+        request.ssl: null
+        request.method: POST
+        request.transforms:
+          - set:
+              target: url.params.search
+              value: >-
+                search sourcetype="XmlWinEventLog:System" | streamstats
+                max(_indextime) AS max_indextime
+          - set:
+              target: url.params.output_mode
+              value: json
+          - set:
+              target: url.params.index_earliest
+              value: '[[ .cursor.index_earliest ]]'
+              default: '[[(now (parseDuration "-10s")).Unix]]'
+          - set:
+              target: url.params.index_latest
+              value: '[[(now).Unix]]'
+          - set:
+              target: header.Content-Type
+              value: application/x-www-form-urlencoded
+        response.decode_as: application/x-ndjson
+        tags:
+          - forwarded
+          - preserve_original_event
+        publisher_pipeline.disable_host: true
+        processors:
+          - decode_json_fields:
+              fields: message
+              target: json
+              add_error_key: true
+          - drop_event:
+              when:
+                not:
+                  has_fields:
+                    - json.result
+          - fingerprint:
+              fields:
+                - json.result._cd
+                - json.result._indextime
+                - json.result._raw
+                - json.result._time
+                - json.result.host
+                - json.result.source
+              target_field: '@metadata._id'
+          - drop_fields:
+              fields: message
+          - rename:
+              fields:
+                - from: json.result._raw
+                  to: event.original
+                - from: json.result.host
+                  to: host.name
+                - from: json.result.source
+                  to: event.provider
+              ignore_missing: true
+              fail_on_error: false
+          - drop_fields:
+              fields: json
+          - decode_xml_wineventlog:
+              field: event.original
+              target_field: winlog
+              ignore_missing: true
+              ignore_failure: true
+              map_ecs_fields: true
+          - timestamp:
+              field: winlog.time_created
+              layouts:
+                - '2006-01-02T15:04:05Z'
+                - '2006-01-02T15:04:05.999Z'
+                - '2006-01-02T15:04:05.999-07:00'
+              test:
+                - '2019-06-22T16:33:51Z'
+                - '2019-11-18T04:59:51.123Z'
+                - '2020-08-03T07:10:20.123456+02:00'

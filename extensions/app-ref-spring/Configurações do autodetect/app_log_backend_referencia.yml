@@ -1,0 +1,15 @@
+inputs:
+  - id: filestream-app_log_backend_referencia
+    type: filestream
+    streams:
+      - id: filestream-app_log_backend_referencia
+        data_stream:
+          type: logs
+          dataset: app_log_backend_referencia
+        paths:
+          - /app/log/backend-referencia/*.log
+        processors:
+          - add_fields:
+              target: service
+              fields:
+                name: app_log_backend_referencia

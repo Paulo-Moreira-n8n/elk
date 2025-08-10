@@ -1,0 +1,14 @@
+services:
+
+  app-node-js:
+    container_name: docker-elk-node-js
+    build:
+      context: extensions/app-node-js/
+    ports:
+      - '8081:8081'
+    environment:
+      - ELASTIC_APM_SERVICE_NAME=elk-app-node-js
+      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
+      - ELASTIC_APM_HOSTNAME=elk-app-node-js
+    networks:
+      - elk

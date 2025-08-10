@@ -1,0 +1,6 @@
+outputs:
+  default:
+    type: elasticsearch
+    hosts:
+      - 'http://elasticsearch:9200'
+    api_key: 'X32niZQBah5cBICECiRW:HaNCQZgMRmeOjeXrxS33Yg'

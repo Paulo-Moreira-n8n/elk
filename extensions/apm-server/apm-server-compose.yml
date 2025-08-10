@@ -1,0 +1,25 @@
+services:
+  apm-server:
+    build:
+      context: extensions/apm-server/
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    volumes:
+      - .extensions/apm-server/config/apm-server.yml:/usr/share/apm-server/config/apm-server.yml:ro,Z
+    ports:
+      - '8200:8200'
+      - '1514:1514/udp'
+    environment:
+#      ELASTICSEARCH_USERNAME: elastic
+#      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD:-}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-}
+#      - output.elasticsearch.hosts=[elasticsearch:9200]
+      ELASTICSEARCH_HOST_PORT: http://elasticsearch:9200
+#      APM-SERVER_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD:-}
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+      - kibana
+    restart: unless-stopped
+

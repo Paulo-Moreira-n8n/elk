@@ -1,0 +1,18 @@
+services:
+
+  app-java:
+    container_name: docker-elk-java
+    build:
+      context: extensions/app-java/
+    ports:
+      - '8080:8080'
+    environment:
+#      - ELASTIC_APM_SERVICE_NAME=elk-app-java-svc
+      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
+#      - ELASTIC_APM_HOSTNAME=elk-app-java-host
+    networks:
+      - elk
+
+networks:
+  elk:
+    external: true

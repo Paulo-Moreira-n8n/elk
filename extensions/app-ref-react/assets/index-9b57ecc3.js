@@ -1,0 +1,1 @@
+import{j as e,P as t}from"./index-937124d3.js";import{P as r}from"./index-4c2fedbf.js";import{C as a}from"./contentTemplate-e555837d.js";const i=()=>e.jsx(a,{pageTitle:e.jsx(r,{breadcrumb:[{label:t.REGISTRAR_RESULTADO.title,active:!0}],backButtonRoute:t.HOME.route,children:t.REGISTRAR_RESULTADO.title})});export{i as default};

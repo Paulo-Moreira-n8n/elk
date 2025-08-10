@@ -1,0 +1,14 @@
+services:
+
+  app-java-detect:
+    container_name: docker-elk-java-detect
+    build:
+      context: extensions/app-java-detect/
+    ports:
+      - '8085:8085'
+    environment:
+      - ELASTIC_APM_SERVICE_NAME=elk-app-java-detect
+      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
+      - ELASTIC_APM_HOSTNAME=elk-app-java-detect
+    networks:
+      - elk

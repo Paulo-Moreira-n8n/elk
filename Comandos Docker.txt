@@ -1,0 +1,100 @@
+docker run -d \
+  -p 8200:8200 \
+  --name=docker-elk-apm \
+  --user=apm-server \
+  --volume="$(pwd)/apm-server.docker.yml:/usr/share/apm-server/apm-server.yml:ro" \
+  docker.elastic.co/apm/apm-server:sha256-fff545f9819be421eb891691dd8354312b262417fce10c4b45904fc2910649f0 \
+  --strict.perms=false -e \
+  -E output.elasticsearch.hosts=["elasticsearch:9200"]  
+  
+docker pull docker.elastic.co/apm/apm-server:9.0.4
+
+docker pull node:18-alpine
+
+docker pull docker.io/library/openjdk:17-jdk-slim
+
+
+docker pull docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+
+docker pull docker.elastic.co/logstash/logstash:9.0.4
+
+docker pull docker.elastic.co/kibana/kibana:9.0.4
+
+docker pull docker.elastic.co/elastic-agent/elastic-agent:9.0.4
+
+
+
+
+  
+git clone https://github.com/deviantony/docker-elk.git
+
+docker compose up setup
+docker compose up -d
+docker compose -f docker-compose.yml -f extensions/fleet/fleet-compose.yml -f extensions/fleet/agent-apmserver-compose.yml up -d
+
+docker compose -f docker-compose.yml -f extensions/app-java/app-java-compose.yml -f extensions/app-node-js/app-node-js-compose.yml up
+
+docker compose -f docker-compose.yml -f extensions/app-java/app-java-compose.yml up
+
+docker compose -f docker-compose.yml -f extensions/app-node-js/app-node-js-compose.yml up
+
+
+docker compose -f docker-compose.yml -f extensions/app-java-detect/app-java-detect-compose.yml up
+
+
+docker compose -f docker-compose.yml -f extensions/fleet/fleet-compose.yml -f extensions/fleet/agent-apmserver-compose.yml -f extensions/app-java/app-java-compose.yml -f extensions/app-node-js/app-node-js-compose.yml up
+
+curl -s http://localhost:9200 -u elastic:changeme
+curl -s http://localhost:50000 -u elastic:changeme
+curl -s http://localhost:5601 -u elastic:changeme
+
+
+curl -s http://localhost:8200 -u elastic:changeme
+
+
+
+ 
+docker compose down -v --rmi all
+
+
+
+docker compose -f docker-compose.yml -f extensions/fleet/fleet-compose.yml -f extensions/fleet/agent-apmserver-compose.yml -f extensions/app-java/app-java-compose.yml -f extensions/app-node-js/app-node-js-compose.yml down -v --rmi all
+
+
+docker rmi elastic-agent
+
+docker rmi 
+ 
+docker start docker-elk-elasticsearch-1 docker-elk-logstash-1 docker-elk-kibana-1 docker-elk-fleet-server-1 docker-elk-apm-server-1
+
+Kibana: http://localhost:5601
+
+
+Elastic apm, como executar o comando de instalação auto_detect.sh no host de um docker
+
+# Assumindo que o script está em /home/usuario/scripts/auto_detect.sh no host
+# E o container é chamado my_container
+
+docker exec -u root my_container sh -c "cd /home/usuario/scripts && ./auto_detect.sh > /tmp/script.log 2>&1"
+
+
+copiar o arquivo para o contêiner:
+docker cp auto_detect.sh docker-elk-java:/home/usuario/scripts/auto_detect.sh
+
+Como abrir um terminal no host de um docker
+
+Para abrir um terminal no host de um Docker, você pode usar o comando docker exec -it docker-elk-java-detect /bin/bash
+O flag -i mapeia a entrada do teclado para o bash
+O flag -t reserva o terminal
+Você também pode executar um comando diretamente no container sem se conectar ao console, passando o console sh com o comando pretendido. Por exemplo, docker exec -it meu_container sh -c "cat /etc/hostname". 
+Para sair do bash do container, basta digitar exit. 
+Para listar todos os contêineres do Docker executados no sistema, você pode executar o comando docker container ls.
+
+curl http://kibana:5601/86cbc85e621f/plugins/observabilityOnboarding/assets/auto_detect.sh -so auto_detect.sh && sudo bash auto_detect.sh --id=40bf6a38-dd0d-4895-b835-2ea591de7184 --kibana-url=http://kibana:5601 --install-key=NW1qUFM1UUJGNndWb2p3MUFCcXc6NDBQQ05EMTlROC1XY3pacGpUMHVoZw== --ingest-key=NTJqUFM1UUJGNndWb2p3MUFCcXc6S1FFWTRrMXpSVi1zQmJsYXJXeThBZw== --ea-version=9.0.4
+
+
+
+curl http://kibana:5601/86cbc85e621f/plugins/observabilityOnboarding/assets/auto_detect.sh -so auto_detect.sh && sudo bash auto_detect.sh --id=16d27bb8-d159-461c-80c7-afadb5426fa9 --kibana-url=http://kibana:5601 --install-key=R05wVVRKUUI4RGlrazN3cWZtcXE6OEVEeGVpY29RbnFvcnZUN3k4M2NKZw== --ingest-key=R2RwVVRKUUI4RGlrazN3cWZtcXE6bzFXSUJsallTTS1SY1IyMjFkNGVrdw== --ea-version=9.0.4
+
+
+

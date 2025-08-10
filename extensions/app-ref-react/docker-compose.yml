@@ -1,0 +1,19 @@
+services:
+
+  app-ref-react:
+    container_name: docker-elk-ref-react
+    build:
+      context: extensions/app-ref-react/
+    ports:
+      - '80:80'
+    environment:
+      - ELASTIC_APM_SERVICE_NAME=elk-app-ref-react-svc
+      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
+      - ELASTIC_APM_HOSTNAME=elk-app-ref-react-host
+    restart: "no"
+#networks:
+#  default:
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: "172.16.238.0/24"

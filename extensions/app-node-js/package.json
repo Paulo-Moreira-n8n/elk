@@ -1,0 +1,13 @@
+{
+  "name": "elk-app-node-js",
+  "version": "1.0.0",
+  "description": "Node.js no Elastic APM",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "elastic-apm-node": "^4.10.0",
+    "express": "^4.21.2"
+  }
+}
